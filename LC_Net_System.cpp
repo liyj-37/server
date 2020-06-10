@@ -23,7 +23,7 @@ void CSocketGroup::TimeCheck()
 
 	static auto uiLastCheckTime = uiTimeNow;
 
-	if (uiTimeNow - uiLastCheckTime < 1)
+	if (uiTimeNow - uiLastCheckTime < 2)
 	{
 		return;
 	}
@@ -90,6 +90,7 @@ bool CNetWork::startListen(uint32_t uiPort)
 	if (pInfo->m_iSocketfd < 0)
 	{
 		printf("create socket error\n");
+		delete pInfo;
 		return false;
 	}
 
@@ -114,6 +115,7 @@ bool CNetWork::startListen(uint32_t uiPort)
 	if (-1 == bind(pInfo->m_iSocketfd, (const sockaddr*)&server_addr, sizeof(server_addr)))
 	{
 		printf("func bind error\n");
+		delete pInfo;
 		return false;
 	}
 
@@ -122,15 +124,18 @@ bool CNetWork::startListen(uint32_t uiPort)
 
 	if (0 != setsockopt(pInfo->m_iSocketfd, SOL_SOCKET, SO_SNDBUF, (const char*)&option_value, option_length))
 	{
+		delete pInfo;
 		return false;
 	}
 	if (0 != setsockopt(pInfo->m_iSocketfd, SOL_SOCKET, SO_RCVBUF, (const char*)&option_value, option_length))
 	{
+		delete pInfo;
 		return false;
 	}
 	if (listen(pInfo->m_iSocketfd, 30) != 0)
 	{
 		printf("func listen error\n");
+		delete pInfo;
 		return false;
 	}
 
@@ -141,6 +146,7 @@ bool CNetWork::startListen(uint32_t uiPort)
 	if (1 != set_non_block(pInfo->m_iSocketfd))
 	{
 		printf("set noblock false");
+		delete pInfo;
 		return false;
 	}
 #endif // WIN32
@@ -156,7 +162,7 @@ bool CNetWork::startListen(uint32_t uiPort)
 	epoll_change_event(EPOLL_CTL_ADD, pInfo->m_iSocketfd, EPOLLIN);
 #endif // !WIN32
 	return true;
-}
+	}
 
 void CNetWork::handleAccept(uint32_t uiFd)
 {
@@ -179,6 +185,7 @@ void CNetWork::handleAccept(uint32_t uiFd)
 	if (connfd == -1)
 	{
 		printf("accept failed:errno:%d,%s\n", errno, strerror);
+		delete pInfo;
 		return;
 	}
 	pInfo->m_iSocketfd = connfd;
@@ -187,8 +194,7 @@ void CNetWork::handleAccept(uint32_t uiFd)
 	pInfo->m_uiLastActiveTime = (uint32_t)time(NULL);
 	pInfo->m_uiPort = ntohs(client_address.sin_port);
 	auto p = inet_ntoa(client_address.sin_addr);
-	auto len = strlen(p);
-	memcpy(pInfo->m_cIp, p, (len > 30 ? 30 : len));
+	memcpy(pInfo->m_cIp, p, (strlen(p) > 30 ? 30 : strlen(p)));
 
 	printf("client connect success ip:%s port:%d\n", pInfo->m_cIp, pInfo->m_uiPort);
 
@@ -217,6 +223,7 @@ bool CNetWork::handlerConnect(const std::string& strIp, int32_t uiPort)
 	pInfo->m_iSocketfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (pInfo->m_iSocketfd == -1) {
 		printf("create socket error\n");
+		delete pInfo;
 		return false;
 	}
 
@@ -233,6 +240,7 @@ bool CNetWork::handlerConnect(const std::string& strIp, int32_t uiPort)
 	if (-1 == connect(pInfo->m_iSocketfd, (sockaddr*)&serverAddress, sizeof(serverAddress)))
 	{
 		printf("connect to %s:%d failed\n", strIp.c_str(), uiPort);
+		delete pInfo;
 		return false;
 	}
 
@@ -245,6 +253,7 @@ bool CNetWork::handlerConnect(const std::string& strIp, int32_t uiPort)
 	if (1 != set_non_block(pInfo->m_iSocketfd))
 	{
 		printf("set noblock false");
+		delete pInfo;
 		return false;
 	}
 #endif // WIN32
@@ -393,8 +402,7 @@ void CNetWork::run_select()
 	{
 		for (const auto& [iSocketid, pInfo] : CSocketGroup::instance().m_mSocket)
 		{
-			if (iSocketid > 0 &&
-				FD_ISSET(iSocketid, &fdRead))
+			if (FD_ISSET(iSocketid, &fdRead))
 			{
 				switch (pInfo->m_uiSocketType)
 				{
@@ -467,10 +475,10 @@ void CNetWork::run_epoll()
 					break;
 				default:
 					break;
-				}
 			}
 		}
 	}
+}
 }
 #endif // WIN32
 

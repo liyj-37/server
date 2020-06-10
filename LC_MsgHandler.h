@@ -31,8 +31,8 @@ public:
 	}
 };
 
-#define REG_GLOBAL_FUNC(id,fc) CMsgHandler::instance().dp.register_handler(id,fc);
-#define UNREG_GLOBAL_FUNC(id,fc) CMsgHandler::instance().dp.unregister_handler(id,fc);
+#define REG_GLOBAL_FUNC(id,fc) CMsgHandler::instance().dp.register_handler(id,&fc);
+#define UNREG_GLOBAL_FUNC(id,fc) CMsgHandler::instance().dp.unregister_handler(id,&fc);
 #define REG_CLASS_FUNC(id,fc) CMsgHandler::instance().dp.register_handler(id,*this,&fc);
 #define UNREG_CLASS_FUNC(id,fc) CMsgHandler::instance().dp.unregister_handler(id,*this,&fc);
 

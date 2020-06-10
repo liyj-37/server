@@ -2,9 +2,7 @@
 #include <iostream>
 #include "LC_Net_System.h"
 
-
-constexpr auto Msg_Quene_Size = 0xA000000;
-//constexpr auto Message_Quene_Size = 0x10000;
+constexpr auto msg_quene_size = 0xA000000;
 
 struct stMsgHead
 {
@@ -29,6 +27,5 @@ public:
 
 	void pop(char* pBuf, size_t& iLen);
 };
-
 
 #define MSG_HEAD_SIZE (sizeof(stMsgHead))
